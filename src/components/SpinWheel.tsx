@@ -58,12 +58,11 @@ export default function SpinWheel({ config, onSpinComplete, onConfigChange }: Sp
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [selectedPrize, setSelectedPrize] = useState<Prize | null>(null);
-  const [wasOneShotPrize, setWasOneShotPrize] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
 
   const enabledPrizes = config.prizes.filter((p) => p.enabled);
-  const activePrizes = enabledPrizes.filter((p) => p.weight > 0);
+  const activePrizes = enabledPrizes.filter((p) => p.stock > 0);
   const numSegments = enabledPrizes.length;
 
   const spin = useCallback(() => {
@@ -72,9 +71,8 @@ export default function SpinWheel({ config, onSpinComplete, onConfigChange }: Sp
     setIsSpinning(true);
     setShowResult(false);
     setSelectedPrize(null);
-    setWasOneShotPrize(false);
 
-    // 1. Pick winner using the weighted random algorithm (respects configured chances)
+    // 1. Pick winner using the stock-based random algorithm (respects configured stock)
     const winner = weightedRandom(config.prizes);
 
     // 2. Calculate next rotation from current rotation so it lands exactly under the pointer
@@ -90,11 +88,10 @@ export default function SpinWheel({ config, onSpinComplete, onConfigChange }: Sp
     setTimeout(() => {
       // Determine the exact prize segment directly under the pointer
       const landedPrize = getPrizeAtRotation(nextRotation, config.prizes) || winner;
-      const isOneShot = landedPrize.weight === 1;
+      const newStock = Math.max(0, landedPrize.stock - 1);
 
       setIsSpinning(false);
       setSelectedPrize(landedPrize);
-      setWasOneShotPrize(isOneShot);
       setShowResult(true);
 
       saveSpinResult({
@@ -103,15 +100,13 @@ export default function SpinWheel({ config, onSpinComplete, onConfigChange }: Sp
         spinId: generateSpinId(),
       });
 
-      // For items with a weight of 1, automatically set their probability to 0 after they are won
-      if (isOneShot) {
-        const updatedPrizes = config.prizes.map((p) =>
-          p.id === landedPrize.id ? { ...p, weight: 0 } : p
-        );
-        const updatedConfig = { ...config, prizes: updatedPrizes };
-        onConfigChange?.(updatedConfig);
-        saveConfig(updatedConfig);
-      }
+      // Automatically decrease stock by 1 in the background whenever a prize is won
+      const updatedPrizes = config.prizes.map((p) =>
+        p.id === landedPrize.id ? { ...p, stock: newStock } : p
+      );
+      const updatedConfig = { ...config, prizes: updatedPrizes };
+      saveConfig(updatedConfig);
+      onConfigChange?.(updatedConfig);
 
       onSpinComplete?.(landedPrize);
     }, config.spinDuration + 150);
@@ -381,7 +376,7 @@ export default function SpinWheel({ config, onSpinComplete, onConfigChange }: Sp
             <span>Memutar…</span>
           </span>
         ) : activePrizes.length === 0 ? (
-          <span>Semua Hadiah Habis (0%)</span>
+          <span>Semua Hadiah Habis</span>
         ) : (
           <span className="flex items-center gap-2">
             <span>✨</span>
@@ -415,18 +410,11 @@ export default function SpinWheel({ config, onSpinComplete, onConfigChange }: Sp
             </p>
 
             <h2
-              className="text-2xl sm:text-3xl font-black mb-3 leading-tight drop-shadow-sm"
+              className="text-2xl sm:text-3xl font-black mb-6 leading-tight drop-shadow-sm"
               style={{ color: selectedPrize.color }}
             >
               {selectedPrize.name}
             </h2>
-
-            {wasOneShotPrize && (
-              <div className="mb-6 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold shadow-xs">
-                <span>⭐</span>
-                <span>Hadiah Langka 1x! Peluang selanjutnya menjadi 0%</span>
-              </div>
-            )}
 
             <button
               onClick={closeResult}

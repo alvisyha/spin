@@ -2,7 +2,7 @@ export interface Prize {
   id: string;
   name: string;
   color: string;
-  weight: number; // probability weight (higher = more likely)
+  stock: number; // remaining stock count; 0 = no longer winnable
   icon: string; // emoji
   enabled: boolean;
 }

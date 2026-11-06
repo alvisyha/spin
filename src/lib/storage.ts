@@ -2,7 +2,7 @@ import { Prize, SpinResult, WheelConfig } from '@/types';
 import { defaultWheelConfig } from './default-prizes';
 
 const STORAGE_KEYS = {
-  CONFIG: 'spinwheel_config_v4',
+  CONFIG: 'spinwheel_config_v5',
   HISTORY: 'spinwheel_history',
 } as const;
 
@@ -23,10 +23,18 @@ export function loadConfig(): WheelConfig {
   
   try {
     const parsed = JSON.parse(stored) as WheelConfig;
-    // Verify that parsed prizes exist
+    // Verify that parsed prizes exist and normalize stock
     if (!parsed.prizes || parsed.prizes.length === 0) {
       return defaultWheelConfig;
     }
+    parsed.prizes = parsed.prizes.map((p) => {
+      // Migrate old weight property if stock is undefined
+      const anyP = p as unknown as { weight?: number; stock?: number };
+      if (p.stock === undefined && anyP.weight !== undefined) {
+        return { ...p, stock: anyP.weight };
+      }
+      return { ...p, stock: typeof p.stock === 'number' ? p.stock : 10 };
+    });
     return parsed;
   } catch {
     return defaultWheelConfig;

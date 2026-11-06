@@ -52,19 +52,6 @@ export default function Home() {
 
   const handleSpinComplete = useCallback((prize: Prize) => {
     setLastWin(prize);
-
-    // For items with a weight of 1, automatically set their probability to 0 after they are won
-    if (prize.weight === 1) {
-      setConfig((prevConfig) => {
-        if (!prevConfig) return prevConfig;
-        const updatedPrizes = prevConfig.prizes.map((p) =>
-          p.id === prize.id ? { ...p, weight: 0 } : p
-        );
-        const updatedConfig = { ...prevConfig, prizes: updatedPrizes };
-        saveConfig(updatedConfig);
-        return updatedConfig;
-      });
-    }
   }, []);
 
   if (!config) {
@@ -136,29 +123,15 @@ export default function Home() {
                   <span>Daftar Hadiah</span>
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {config.prizes.filter(p => p.enabled).map(prize => {
-                    const isZeroChance = prize.weight === 0;
-                    return (
-                      <div
-                        key={prize.id}
-                        className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 border transition-colors text-xs font-semibold ${
-                          isZeroChance
-                            ? 'bg-white/[0.02] border-white/5 text-white/35 line-through decoration-rose-400/50'
-                            : 'bg-white/[0.06] hover:bg-white/[0.1] border-white/10 text-white/90'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="text-base flex-shrink-0 no-underline">{prize.icon}</span>
-                          <span className="truncate">{prize.name}</span>
-                        </div>
-                        {isZeroChance && (
-                          <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 flex-shrink-0 no-underline">
-                            0% Habis
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {config.prizes.filter(p => p.enabled).map(prize => (
+                    <div
+                      key={prize.id}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white/90 transition-colors text-xs font-semibold"
+                    >
+                      <span className="text-base flex-shrink-0">{prize.icon}</span>
+                      <span className="truncate">{prize.name}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

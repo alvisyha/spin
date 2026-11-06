@@ -1,33 +1,33 @@
 import { Prize } from '@/types';
 
 /**
- * Weighted Random Selection Algorithm
- * Uses cumulative distribution function (CDF) approach.
+ * Stock-based Random Selection Algorithm
+ * Uses cumulative distribution function (CDF) based on remaining stock.
  * 
- * Only prizes that are enabled AND have weight > 0 are eligible to be won.
- * Items with weight 0 have an absolute 0% chance of being selected.
+ * Only prizes that are enabled AND have stock > 0 are eligible to be won.
+ * Items with stock 0 have an absolute 0% chance of being selected.
  * 
  * Time complexity: O(n) where n = number of eligible prizes
  * Space complexity: O(1)
  */
 export function weightedRandom(prizes: Prize[]): Prize {
-  // Only enabled prizes with weight > 0 are eligible
-  const eligiblePrizes = prizes.filter((p) => p.enabled && p.weight > 0);
+  // Only enabled prizes with stock > 0 are eligible
+  const eligiblePrizes = prizes.filter((p) => p.enabled && p.stock > 0);
   
   if (eligiblePrizes.length === 0) {
-    throw new Error('Tidak ada hadiah dengan peluang aktif (> 0)');
+    throw new Error('Tidak ada hadiah dengan stok aktif (> 0)');
   }
 
-  const totalWeight = eligiblePrizes.reduce((sum, prize) => sum + prize.weight, 0);
+  const totalStock = eligiblePrizes.reduce((sum, prize) => sum + prize.stock, 0);
   
-  if (totalWeight <= 0) {
-    throw new Error('Total bobot hadiah aktif harus lebih besar dari 0');
+  if (totalStock <= 0) {
+    throw new Error('Total stok hadiah aktif harus lebih besar dari 0');
   }
 
-  let random = Math.random() * totalWeight;
+  let random = Math.random() * totalStock;
   
   for (const prize of eligiblePrizes) {
-    random -= prize.weight;
+    random -= prize.stock;
     if (random <= 0) {
       return prize;
     }
@@ -143,17 +143,17 @@ export function getPrizeAtRotation(rotation: number, prizes: Prize[]): Prize {
 }
 
 /**
- * Calculate win probability percentage for each prize based on weight.
- * Prizes with weight <= 0 or enabled = false strictly have 0% probability.
+ * Calculate win probability percentage for each prize based on remaining stock.
+ * Prizes with stock <= 0 or enabled = false strictly have 0% probability.
  */
 export function calculateProbabilities(prizes: Prize[]): Map<string, number> {
-  const activePrizes = prizes.filter((p) => p.enabled && p.weight > 0);
-  const totalWeight = activePrizes.reduce((sum, p) => sum + p.weight, 0);
+  const activePrizes = prizes.filter((p) => p.enabled && p.stock > 0);
+  const totalStock = activePrizes.reduce((sum, p) => sum + p.stock, 0);
   const probabilities = new Map<string, number>();
   
   for (const prize of prizes) {
-    if (prize.enabled && prize.weight > 0 && totalWeight > 0) {
-      probabilities.set(prize.id, (prize.weight / totalWeight) * 100);
+    if (prize.enabled && prize.stock > 0 && totalStock > 0) {
+      probabilities.set(prize.id, (prize.stock / totalStock) * 100);
     } else {
       probabilities.set(prize.id, 0);
     }

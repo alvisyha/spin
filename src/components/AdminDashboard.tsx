@@ -18,7 +18,7 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
   const [newPrize, setNewPrize] = useState<Partial<Prize>>({
     name: '',
     color: '#FF6B6B',
-    weight: 10,
+    stock: 10,
     icon: '🎁',
     enabled: true,
   });
@@ -40,7 +40,7 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
       id: Date.now().toString(),
       name: newPrize.name!.trim(),
       color: newPrize.color || '#FF6B6B',
-      weight: newPrize.weight || 10,
+      stock: newPrize.stock ?? 10,
       icon: newPrize.icon || '🎁',
       enabled: true,
     };
@@ -53,7 +53,7 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
     setNewPrize({
       name: '',
       color: '#FF6B6B',
-      weight: 10,
+      stock: 10,
       icon: '🎁',
       enabled: true,
     });
@@ -148,20 +148,20 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Bobot (Weight)</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Stok (Stock)</label>
                 <input
                   type="number"
                   min="0"
-                  max="100"
-                  value={newPrize.weight ?? 10}
+                  max="9999"
+                  value={newPrize.stock ?? 10}
                   onChange={e => {
                     const val = parseInt(e.target.value);
-                    setNewPrize({ ...newPrize, weight: isNaN(val) ? 0 : val });
+                    setNewPrize({ ...newPrize, stock: isNaN(val) ? 0 : val });
                   }}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                 />
                 <p className="text-[11px] text-gray-500 mt-1">
-                  💡 Bobot 1 = otomatis menjadi 0% setelah dimenangkan.
+                  💡 Stok otomatis berkurang 1 setiap kali hadiah dimenangkan.
                 </p>
               </div>
               <div>
@@ -255,13 +255,14 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
                       <input
                         type="number"
                         min="0"
-                        max="100"
-                        value={editingPrize.weight}
+                        max="9999"
+                        value={editingPrize.stock}
                         onChange={e => {
                           const val = parseInt(e.target.value);
-                          setEditingPrize({ ...editingPrize, weight: isNaN(val) ? 0 : val });
+                          setEditingPrize({ ...editingPrize, stock: isNaN(val) ? 0 : val });
                         }}
                         className="px-2 py-1 rounded border border-gray-300 text-sm text-gray-900"
+                        placeholder="Stok"
                       />
                       <input
                         type="color"
@@ -290,19 +291,19 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
                       <div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <p className="font-semibold text-gray-900 text-sm sm:text-base">{prize.name}</p>
-                          {prize.weight === 1 && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
-                              ⭐ 1x Menang
+                          {prize.stock === 0 && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">
+                              🚫 Stok Habis
                             </span>
                           )}
-                          {prize.weight === 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">
-                              🚫 Peluang 0%
+                          {prize.stock > 0 && prize.stock <= 3 && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                              ⚠️ Sisa {prize.stock}
                             </span>
                           )}
                         </div>
                         <p className="text-xs text-gray-500">
-                          Bobot: {prize.weight} · Peluang: {(probabilities.get(prize.id) || 0).toFixed(1)}%
+                          Stok: {prize.stock} · Peluang: {(probabilities.get(prize.id) || 0).toFixed(1)}%
                         </p>
                       </div>
                     </div>
