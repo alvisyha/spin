@@ -3,65 +3,65 @@ import { Prize, WheelConfig } from '@/types';
 export const defaultPrizes: Prize[] = [
   {
     id: '1',
-    name: 'iPhone 16 Pro',
-    color: '#FF6B6B',
-    weight: 5,
-    icon: '📱',
+    name: 'T-Shirt Eksklusif',
+    color: '#3B82F6', // Royal Blue
+    weight: 15,
+    icon: '👕',
     enabled: true,
   },
   {
     id: '2',
-    name: 'AirPods Pro',
-    color: '#4ECDC4',
-    weight: 10,
-    icon: '🎧',
+    name: 'Portable Fan',
+    color: '#06B6D4', // Cyan
+    weight: 20,
+    icon: '🪭',
     enabled: true,
   },
   {
     id: '3',
-    name: 'Gift Card $100',
-    color: '#45B7D1',
-    weight: 15,
-    icon: '💳',
+    name: 'Goodie Bag',
+    color: '#F59E0B', // Amber
+    weight: 25,
+    icon: '🛍️',
     enabled: true,
   },
   {
     id: '4',
-    name: 'Voucher 50%',
-    color: '#96CEB4',
-    weight: 25,
-    icon: '🎫',
+    name: 'Kalender 2026',
+    color: '#10B981', // Emerald
+    weight: 20,
+    icon: '📅',
     enabled: true,
   },
   {
     id: '5',
-    name: 'Free Shipping',
-    color: '#FFEAA7',
-    weight: 20,
-    icon: '🚚',
+    name: 'Tumbler Premium',
+    color: '#8B5CF6', // Purple
+    weight: 15,
+    icon: '🥤',
     enabled: true,
   },
   {
     id: '6',
     name: 'Mystery Box',
-    color: '#DDA0DD',
-    weight: 15,
+    color: '#EC4899', // Pink
+    weight: 1, // Grand Prize: Bobot 1 (otomatis menjadi 0% setelah dimenangkan)
     icon: '🎁',
     enabled: true,
   },
   {
     id: '7',
-    name: 'Bonus Points',
-    color: '#F0E68C',
-    weight: 25,
+    name: 'Bonus Poin',
+    color: '#FACC15', // Gold
+    weight: 20,
     icon: '⭐',
     enabled: true,
   },
   {
     id: '8',
-    name: 'Try Again',
-    color: '#C0C0C0',
-    weight: 35,
+    name: 'Coba Lagi',
+    color: '#64748B', // Slate
+    weight: 30,
     icon: '🔄',
     enabled: true,
   },

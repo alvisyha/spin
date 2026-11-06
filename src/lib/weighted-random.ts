@@ -2,120 +2,157 @@ import { Prize } from '@/types';
 
 /**
  * Weighted Random Selection Algorithm
- * Uses cumulative distribution function (CDF) approach
+ * Uses cumulative distribution function (CDF) approach.
  * 
- * How it works:
- * 1. Calculate total weight from all enabled prizes
- * 2. Generate a random number between 0 and total weight
- * 3. Iterate through prizes, subtracting each weight from the random number
- * 4. When the random number drops below 0, that prize is selected
+ * Only prizes that are enabled AND have weight > 0 are eligible to be won.
+ * Items with weight 0 have an absolute 0% chance of being selected.
  * 
- * Time complexity: O(n) where n = number of prizes
+ * Time complexity: O(n) where n = number of eligible prizes
  * Space complexity: O(1)
  */
 export function weightedRandom(prizes: Prize[]): Prize {
-  const enabledPrizes = prizes.filter(p => p.enabled);
+  // Only enabled prizes with weight > 0 are eligible
+  const eligiblePrizes = prizes.filter((p) => p.enabled && p.weight > 0);
   
-  if (enabledPrizes.length === 0) {
-    throw new Error('No enabled prizes available');
+  if (eligiblePrizes.length === 0) {
+    throw new Error('Tidak ada hadiah dengan peluang aktif (> 0)');
   }
 
-  const totalWeight = enabledPrizes.reduce((sum, prize) => sum + prize.weight, 0);
+  const totalWeight = eligiblePrizes.reduce((sum, prize) => sum + prize.weight, 0);
   
   if (totalWeight <= 0) {
-    throw new Error('Total weight must be greater than 0');
+    throw new Error('Total bobot hadiah aktif harus lebih besar dari 0');
   }
 
   let random = Math.random() * totalWeight;
   
-  for (const prize of enabledPrizes) {
+  for (const prize of eligiblePrizes) {
     random -= prize.weight;
     if (random <= 0) {
       return prize;
     }
   }
   
-  // Fallback (should not reach here due to floating point)
-  return enabledPrizes[enabledPrizes.length - 1];
+  // Fallback to last eligible prize (safety for floating point edge cases)
+  return eligiblePrizes[eligiblePrizes.length - 1];
 }
 
 /**
- * Calculate the angle on the wheel for a given prize
- * based on its weight relative to total weight
+ * Calculate the angle on the wheel for a given prize index.
+ * All segments are equal in size (360 / total enabled prizes).
  */
-export function calculatePrizeAngle(prizes: Prize[], prizeIndex: number): { startAngle: number; endAngle: number; midAngle: number } {
-  const enabledPrizes = prizes.filter(p => p.enabled);
-  const totalWeight = enabledPrizes.reduce((sum, p) => sum + p.weight, 0);
-  
-  let startAngle = 0;
-  
-  for (let i = 0; i < enabledPrizes.length; i++) {
-    const sliceAngle = (enabledPrizes[i].weight / totalWeight) * 360;
-    
-    if (i === prizeIndex) {
-      return {
-        startAngle,
-        endAngle: startAngle + sliceAngle,
-        midAngle: startAngle + sliceAngle / 2,
-      };
-    }
-    
-    startAngle += sliceAngle;
+export function calculatePrizeAngle(
+  prizes: Prize[], 
+  prizeIndex: number
+): { startAngle: number; endAngle: number; midAngle: number } {
+  const enabledPrizes = prizes.filter((p) => p.enabled);
+  if (prizeIndex < 0 || prizeIndex >= enabledPrizes.length) {
+    throw new Error('Prize index out of bounds');
   }
+
+  const sliceAngle = 360 / enabledPrizes.length;
+  const startAngle = prizeIndex * sliceAngle;
   
-  throw new Error('Prize index out of bounds');
+  return {
+    startAngle,
+    endAngle: startAngle + sliceAngle,
+    midAngle: startAngle + sliceAngle / 2,
+  };
 }
 
 /**
- * Get the target rotation angle to land on a specific prize
- * Adds random offset within the prize's slice for natural feel
+ * Calculate the next cumulative rotation (in degrees) so the wheel:
+ * 1. Continues spinning forward (clockwise).
+ * 2. Completes at least `minRotations` full turns.
+ * 3. Stops exactly with the pointer (at 12 o'clock / top) inside the selected prize's segment.
+ */
+export function calculateNextRotation(
+  currentRotation: number,
+  prizes: Prize[],
+  selectedPrize: Prize,
+  minRotations: number = 5
+): number {
+  const enabledPrizes = prizes.filter((p) => p.enabled);
+  const numSegments = enabledPrizes.length;
+  if (numSegments === 0) return currentRotation;
+
+  const sliceAngle = 360 / numSegments;
+  const prizeIndex = enabledPrizes.findIndex((p) => p.id === selectedPrize.id);
+  const targetIndex = prizeIndex >= 0 ? prizeIndex : 0;
+
+  // Midpoint of target slice (in degrees clockwise from top 0)
+  const midAngle = (targetIndex + 0.5) * sliceAngle;
+
+  // Safe random variation within the slice (up to 30% from center towards edges)
+  // This guarantees the pointer never lands on the segment border line.
+  const safeMargin = sliceAngle * 0.3;
+  const randomOffset = (Math.random() - 0.5) * 2 * safeMargin;
+  const targetPointOnWheel = midAngle + randomOffset;
+
+  // The pointer sits at top (0 deg).
+  // When the wheel has rotation R, a point on the wheel at angle A moves to (A + R) % 360.
+  // For the point to align with the pointer at 0 deg: (A + R) % 360 === 0 => R % 360 === (360 - A % 360) % 360.
+  const desiredNormalized = (360 - (targetPointOnWheel % 360)) % 360;
+
+  // Current normalized angle of the wheel (0 to 359.999...)
+  const currentNormalized = ((currentRotation % 360) + 360) % 360;
+
+  // Forward angular distance needed to reach desired angle
+  let forwardAngle = desiredNormalized - currentNormalized;
+  if (forwardAngle <= 0) {
+    forwardAngle += 360;
+  }
+
+  // Minimum full rotations for excitement
+  const fullTurns = Math.max(1, minRotations) * 360;
+
+  return currentRotation + fullTurns + forwardAngle;
+}
+
+/**
+ * Legacy wrapper for getTargetRotation
  */
 export function getTargetRotation(
   prizes: Prize[], 
   selectedPrize: Prize, 
   minRotations: number = 5
 ): number {
-  const enabledPrizes = prizes.filter(p => p.enabled);
-  const totalWeight = enabledPrizes.reduce((sum, p) => sum + p.weight, 0);
-  
-  let startAngle = 0;
-  let targetAngle = 0;
-  
-  for (const prize of enabledPrizes) {
-    const sliceAngle = (prize.weight / totalWeight) * 360;
-    
-    if (prize.id === selectedPrize.id) {
-      // Random position within the slice (with 10% padding from edges)
-      const padding = sliceAngle * 0.1;
-      const randomOffset = padding + Math.random() * (sliceAngle - 2 * padding);
-      targetAngle = startAngle + randomOffset;
-      break;
-    }
-    
-    startAngle += sliceAngle;
-  }
-  
-  // The wheel pointer is at the top (0/360 degrees)
-  // We need to rotate so the target slice is at the top
-  // Wheel rotates clockwise, so we subtract the target angle from 360
-  const adjustedAngle = 360 - targetAngle;
-  
-  // Add full rotations for dramatic effect
-  const fullRotations = (minRotations + Math.floor(Math.random() * 3)) * 360;
-  
-  return fullRotations + adjustedAngle;
+  return calculateNextRotation(0, prizes, selectedPrize, minRotations);
 }
 
 /**
- * Calculate win probability percentage for each prize
+ * Determine exactly which prize segment is under the top pointer (at 12 o'clock)
+ * given a wheel rotation angle (in degrees).
+ */
+export function getPrizeAtRotation(rotation: number, prizes: Prize[]): Prize {
+  const enabledPrizes = prizes.filter((p) => p.enabled);
+  const numSegments = enabledPrizes.length;
+  if (numSegments === 0) {
+    throw new Error('No enabled prizes available');
+  }
+
+  const sliceAngle = 360 / numSegments;
+
+  // Find which point on the wheel is currently under the pointer at 0 degrees
+  const pointerAngleOnWheel = (360 - (((rotation % 360) + 360) % 360)) % 360;
+
+  // Find corresponding segment index
+  const segmentIndex = Math.floor(pointerAngleOnWheel / sliceAngle) % numSegments;
+
+  return enabledPrizes[segmentIndex];
+}
+
+/**
+ * Calculate win probability percentage for each prize based on weight.
+ * Prizes with weight <= 0 or enabled = false strictly have 0% probability.
  */
 export function calculateProbabilities(prizes: Prize[]): Map<string, number> {
-  const enabledPrizes = prizes.filter(p => p.enabled);
-  const totalWeight = enabledPrizes.reduce((sum, p) => sum + p.weight, 0);
+  const activePrizes = prizes.filter((p) => p.enabled && p.weight > 0);
+  const totalWeight = activePrizes.reduce((sum, p) => sum + p.weight, 0);
   const probabilities = new Map<string, number>();
   
   for (const prize of prizes) {
-    if (prize.enabled && totalWeight > 0) {
+    if (prize.enabled && prize.weight > 0 && totalWeight > 0) {
       probabilities.set(prize.id, (prize.weight / totalWeight) * 100);
     } else {
       probabilities.set(prize.id, 0);

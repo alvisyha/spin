@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Prize, WheelConfig } from '@/types';
 import { calculateProbabilities } from '@/lib/weighted-random';
-import { loadHistory, clearHistory } from '@/lib/storage';
+import { loadHistory, clearHistory, resetConfig } from '@/lib/storage';
+import { defaultWheelConfig } from '@/lib/default-prizes';
 
 interface AdminDashboardProps {
   config: WheelConfig;
@@ -102,7 +103,11 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
     return { totalSpins, prizeCounts, mostWon, leastWon };
   })();
 
-  const emojiOptions = ['🎁', '📱', '🎧', '💳', '🎫', '🚚', '⭐', '🔄', '💎', '🏆', '🎮', '👑', '💰', '🎪', '🍕', '☕', '🎵', '🎯', '🃏', '🧸'];
+  const emojiOptions = [
+    '👕', '🪭', '🛍️', '📅', '🥤', '🎁', '⭐', '🔄',
+    '📱', '🎧', '💳', '🎫', '🚚', '💎', '🏆', '🎮',
+    '👑', '💰', '🎒', '☕', '🍕', '🎯', '🧸', '🎵'
+  ];
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -146,12 +151,18 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
                 <label className="block text-sm font-medium text-gray-600 mb-1">Bobot (Weight)</label>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   max="100"
-                  value={newPrize.weight || 10}
-                  onChange={e => setNewPrize({ ...newPrize, weight: parseInt(e.target.value) || 1 })}
+                  value={newPrize.weight ?? 10}
+                  onChange={e => {
+                    const val = parseInt(e.target.value);
+                    setNewPrize({ ...newPrize, weight: isNaN(val) ? 0 : val });
+                  }}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
                 />
+                <p className="text-[11px] text-gray-500 mt-1">
+                  💡 Bobot 1 = otomatis menjadi 0% setelah dimenangkan.
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Warna</label>
@@ -198,6 +209,22 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
             </button>
           </div>
 
+          {/* Prize List Header */}
+          <div className="flex items-center justify-between pt-2">
+            <h4 className="text-sm font-bold text-gray-700">Daftar Hadiah ({config.prizes.length})</h4>
+            <button
+              onClick={() => {
+                if (confirm('Kembalikan daftar hadiah ke default? (T-Shirt, Fan, Goodie Bag, Kalender, Tumbler, dll)')) {
+                  const fresh = resetConfig();
+                  onConfigChange(fresh);
+                }
+              }}
+              className="px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all"
+            >
+              ↺ Reset ke Hadiah Default
+            </button>
+          </div>
+
           {/* Prize List */}
           <div className="space-y-2">
             {config.prizes.map((prize) => (
@@ -227,10 +254,13 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
                       />
                       <input
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
                         value={editingPrize.weight}
-                        onChange={e => setEditingPrize({ ...editingPrize, weight: parseInt(e.target.value) || 1 })}
+                        onChange={e => {
+                          const val = parseInt(e.target.value);
+                          setEditingPrize({ ...editingPrize, weight: isNaN(val) ? 0 : val });
+                        }}
                         className="px-2 py-1 rounded border border-gray-300 text-sm text-gray-900"
                       />
                       <input
@@ -256,9 +286,21 @@ export default function AdminDashboard({ config, onConfigChange }: AdminDashboar
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span className="text-xl">{prize.icon}</span>
+                      <span className="text-xl flex-shrink-0">{prize.icon}</span>
                       <div>
-                        <p className="font-semibold text-gray-900 text-sm sm:text-base">{prize.name}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base">{prize.name}</p>
+                          {prize.weight === 1 && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
+                              ⭐ 1x Menang
+                            </span>
+                          )}
+                          {prize.weight === 0 && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">
+                              🚫 Peluang 0%
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500">
                           Bobot: {prize.weight} · Peluang: {(probabilities.get(prize.id) || 0).toFixed(1)}%
                         </p>

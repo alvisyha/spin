@@ -2,7 +2,7 @@ import { Prize, SpinResult, WheelConfig } from '@/types';
 import { defaultWheelConfig } from './default-prizes';
 
 const STORAGE_KEYS = {
-  CONFIG: 'spinwheel_config',
+  CONFIG: 'spinwheel_config_v4',
   HISTORY: 'spinwheel_history',
 } as const;
 
@@ -16,13 +16,28 @@ export function loadConfig(): WheelConfig {
   if (typeof window === 'undefined') return defaultWheelConfig;
   
   const stored = localStorage.getItem(STORAGE_KEYS.CONFIG);
-  if (!stored) return defaultWheelConfig;
+  if (!stored) {
+    saveConfig(defaultWheelConfig);
+    return defaultWheelConfig;
+  }
   
   try {
-    return JSON.parse(stored) as WheelConfig;
+    const parsed = JSON.parse(stored) as WheelConfig;
+    // Verify that parsed prizes exist
+    if (!parsed.prizes || parsed.prizes.length === 0) {
+      return defaultWheelConfig;
+    }
+    return parsed;
   } catch {
     return defaultWheelConfig;
   }
+}
+
+export function resetConfig(): WheelConfig {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(defaultWheelConfig));
+  }
+  return defaultWheelConfig;
 }
 
 export function saveSpinResult(result: SpinResult): void {
